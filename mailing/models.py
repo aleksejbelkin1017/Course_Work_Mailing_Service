@@ -27,3 +27,24 @@ class Recipient(models.Model):
 
     def __str__(self):
         return f"{self.full_name} <{self.email}>"
+
+
+class Message(models.Model):
+    """Модель сообщения для рассылки."""
+    subject = models.CharField(
+        max_length=255,
+        verbose_name="Тема письма",
+        help_text="Введите тему письма",
+    )
+    body = models.TextField(
+        verbose_name="Тело письма",
+        help_text="Введите текст письма",
+    )
+
+    class Meta:
+        verbose_name = "Сообщение"
+        verbose_name_plural = "Сообщения"
+        ordering = ["subject"]
+
+    def __str__(self):
+        return self.subject
