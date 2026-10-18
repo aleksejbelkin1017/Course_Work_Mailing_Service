@@ -1,5 +1,6 @@
+from django.core.exceptions import ValidationError
 from django.db import models
-
+from django.utils import timezone
 
 class Recipient(models.Model):
     """Модель получателя рассылки."""
@@ -48,3 +49,84 @@ class Message(models.Model):
 
     def __str__(self):
         return self.subject
+
+
+class Mailing(models.Model):
+    """Модель рассылки."""
+
+    STATUS_CREATED = "created"
+    STATUS_STARTED = "started"
+    STATUS_FINISHED = "finished"
+
+    STATUS_CHOICES = [
+        (STATUS_CREATED, "Создана"),
+        (STATUS_STARTED, "Запущена"),
+        (STATUS_FINISHED, "Завершена"),
+    ]
+
+    start_time = models.DateTimeField(
+        verbose_name="Дата и время начала отправки",
+        help_text="С какого момента рассылка может быть запущена",
+    )
+    end_time = models.DateTimeField(
+        verbose_name="Дата и время окончания отправки",
+        help_text="До какого момента разрешено выполнять отправку",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_CREATED,
+        verbose_name="Статус",
+    )
+    message = models.ForeignKey(
+        Message,
+        on_delete=models.CASCADE,
+        related_name="mailings",
+        verbose_name="Сообщение",
+    )
+    recipients = models.ManyToManyField(
+        Recipient,
+        related_name="mailings",
+        verbose_name="Получатели",
+    )
+
+    class Meta:
+        verbose_name = "Рассылка"
+        verbose_name_plural = "Рассылки"
+        ordering = ["-start_time"]
+
+    def __str__(self):
+        return f"Рассылка #{self.pk} — {self.message.subject}"
+
+    def clean(self):
+        """Валидация: start_time не в прошлом, start_time < end_time."""
+        if self.start_time and self.end_time:
+            if self.start_time < timezone.now():
+                raise ValidationError({
+                    "start_time": "Дата начала не может быть в прошлом."
+                })
+            if self.start_time >= self.end_time:
+                raise ValidationError({
+                    "end_time": "Дата окончания должна быть позже даты начала."
+                })
+
+    def update_status(self, save: bool = True):
+        """
+        Пересчитывает статус на основе текущего времени.
+        Если статус изменился — сохраняет в БД.
+        """
+        now = timezone.now()
+
+        if now < self.start_time:
+            new_status = self.STATUS_CREATED
+        elif self.start_time <= now <= self.end_time:
+            new_status = self.STATUS_STARTED
+        else:
+            new_status = self.STATUS_FINISHED
+
+        if self.status != new_status:
+            self.status = new_status
+            if save:
+                super().save(update_fields=["status"])
+
+        return self.status
