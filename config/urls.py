@@ -3,12 +3,14 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
+from mailing.views import IndexView
+
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("", IndexView.as_view(), name="index"),
     path("mailing/", include("mailing.urls", namespace="mailing")),
     path("users/", include("users.urls", namespace="users")),
 ]
 
-# Раздача media-файлов в режиме DEBUG
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

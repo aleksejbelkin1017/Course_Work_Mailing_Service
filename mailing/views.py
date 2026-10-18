@@ -1,5 +1,6 @@
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
@@ -123,3 +124,22 @@ class MailingSendView(View):
             messages.error(request, message)
 
         return redirect("mailing:mailing_list")
+
+
+class IndexView(View):
+    """Главная страница со статистикой."""
+    def get(self, request):
+        total_mailings = Mailing.objects.count()
+        active_mailings = Mailing.objects.filter(
+            start_time__lte=timezone.now(),
+            end_time__gte=timezone.now(),
+            status=Mailing.STATUS_STARTED
+        ).count()
+        total_recipients = Recipient.objects.count()
+
+        context = {
+            "total_mailings": total_mailings,
+            "active_mailings": active_mailings,
+            "total_recipients": total_recipients,
+        }
+        return render(request, "mailing/index.html", context)
