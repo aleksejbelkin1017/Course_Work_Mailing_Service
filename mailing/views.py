@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views import View
@@ -10,17 +10,30 @@ from mailing.models import Mailing, Message, Recipient
 from mailing.services import send_mailing
 
 
+class OwnerQuerysetMixin:
+    """
+    Миксин для фильтрации.
+    Если пользователь не менеджер и не суперюзер — он видит только свои записи.
+    """
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        # Если это менеджер (в группе "Менеджеры") или админ — видит всё
+        if user.is_superuser or user.groups.filter(name="Менеджеры").exists():
+            return qs
+        # Иначе — только объекты, где он владелец
+        return qs.filter(owner=user)
+
+
 # --- RECIPIENT ---
 
-class RecipientListView(LoginRequiredMixin, ListView):
-    """Страница со списком всех получателей."""
+class RecipientListView(LoginRequiredMixin, OwnerQuerysetMixin, ListView):
     model = Recipient
     template_name = "mailing/recipient_list.html"
     context_object_name = "recipients"
 
 
 class RecipientCreateView(LoginRequiredMixin, CreateView):
-    """Страница создания нового получателя."""
     model = Recipient
     fields = ["email", "full_name", "comment"]
     template_name = "mailing/recipient_form.html"
@@ -32,8 +45,7 @@ class RecipientCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class RecipientUpdateView(LoginRequiredMixin, UpdateView):
-    """Страница редактирования существующего получателя."""
+class RecipientUpdateView(LoginRequiredMixin, OwnerQuerysetMixin, UpdateView):
     model = Recipient
     fields = ["email", "full_name", "comment"]
     template_name = "mailing/recipient_form.html"
@@ -41,8 +53,7 @@ class RecipientUpdateView(LoginRequiredMixin, UpdateView):
     extra_context = {"title": "Редактировать получателя", "button_text": "Сохранить"}
 
 
-class RecipientDeleteView(LoginRequiredMixin, DeleteView):
-    """Страница подтверждения удаления получателя."""
+class RecipientDeleteView(LoginRequiredMixin, OwnerQuerysetMixin, DeleteView):
     model = Recipient
     template_name = "mailing/recipient_confirm_delete.html"
     success_url = reverse_lazy("mailing:recipient_list")
@@ -50,15 +61,13 @@ class RecipientDeleteView(LoginRequiredMixin, DeleteView):
 
 # --- MESSAGE ---
 
-class MessageListView(LoginRequiredMixin, ListView):
-    """Страница со списком всех сообщений."""
+class MessageListView(LoginRequiredMixin, OwnerQuerysetMixin, ListView):
     model = Message
     template_name = "mailing/message_list.html"
     context_object_name = "messages"
 
 
 class MessageCreateView(LoginRequiredMixin, CreateView):
-    """Страница создания нового сообщения."""
     model = Message
     fields = ["subject", "body"]
     template_name = "mailing/message_form.html"
@@ -70,8 +79,7 @@ class MessageCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class MessageUpdateView(LoginRequiredMixin, UpdateView):
-    """Страница редактирования существующего сообщения."""
+class MessageUpdateView(LoginRequiredMixin, OwnerQuerysetMixin, UpdateView):
     model = Message
     fields = ["subject", "body"]
     template_name = "mailing/message_form.html"
@@ -79,8 +87,7 @@ class MessageUpdateView(LoginRequiredMixin, UpdateView):
     extra_context = {"title": "Редактировать сообщение", "button_text": "Сохранить"}
 
 
-class MessageDeleteView(LoginRequiredMixin, DeleteView):
-    """Страница подтверждения удаления сообщения."""
+class MessageDeleteView(LoginRequiredMixin, OwnerQuerysetMixin, DeleteView):
     model = Message
     template_name = "mailing/message_confirm_delete.html"
     success_url = reverse_lazy("mailing:message_list")
@@ -88,15 +95,13 @@ class MessageDeleteView(LoginRequiredMixin, DeleteView):
 
 # --- MAILING ---
 
-class MailingListView(LoginRequiredMixin, ListView):
-    """Страница со списком всех рассылок."""
+class MailingListView(LoginRequiredMixin, OwnerQuerysetMixin, ListView):
     model = Mailing
     template_name = "mailing/mailing_list.html"
     context_object_name = "mailings"
 
 
 class MailingCreateView(LoginRequiredMixin, CreateView):
-    """Страница создания новой рассылки."""
     model = Mailing
     fields = ["start_time", "end_time", "message", "recipients"]
     template_name = "mailing/mailing_form.html"
@@ -108,8 +113,7 @@ class MailingCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class MailingUpdateView(LoginRequiredMixin, UpdateView):
-    """Страница редактирования существующей рассылки."""
+class MailingUpdateView(LoginRequiredMixin, OwnerQuerysetMixin, UpdateView):
     model = Mailing
     fields = ["start_time", "end_time", "message", "recipients"]
     template_name = "mailing/mailing_form.html"
@@ -117,18 +121,22 @@ class MailingUpdateView(LoginRequiredMixin, UpdateView):
     extra_context = {"title": "Редактировать рассылку", "button_text": "Сохранить"}
 
 
-class MailingDeleteView(LoginRequiredMixin, DeleteView):
-    """Страница подтверждения удаления рассылки."""
+class MailingDeleteView(LoginRequiredMixin, OwnerQuerysetMixin, DeleteView):
     model = Mailing
     template_name = "mailing/mailing_confirm_delete.html"
     success_url = reverse_lazy("mailing:mailing_list")
 
 
-class MailingSendView(LoginRequiredMixin, View):
-    """Запуск рассылки по требованию."""
-
+class MailingSendView(LoginRequiredMixin, OwnerQuerysetMixin, View):
     def post(self, request, pk):
+        # get_object_or_404 сработает с учетом фильтрации из миксина (если переопределить get_object)
+        # Проще проверить вручную:
         mailing = get_object_or_404(Mailing, pk=pk)
+        if not request.user.is_superuser and not request.user.groups.filter(name="Менеджеры").exists():
+            if mailing.owner != request.user:
+                messages.error(request, "Вы не можете запускать чужую рассылку.")
+                return redirect("mailing:mailing_list")
+
         success, message = send_mailing(mailing)
 
         if success:
@@ -142,8 +150,6 @@ class MailingSendView(LoginRequiredMixin, View):
 # --- INDEX ---
 
 class IndexView(View):
-    """Главная страница со статистикой."""
-
     def get(self, request):
         total_mailings = Mailing.objects.count()
         active_mailings = Mailing.objects.filter(
@@ -158,5 +164,4 @@ class IndexView(View):
             "active_mailings": active_mailings,
             "total_recipients": total_recipients,
         }
-        from django.shortcuts import render
         return render(request, "mailing/index.html", context)
