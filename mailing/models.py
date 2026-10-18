@@ -130,3 +130,44 @@ class Mailing(models.Model):
                 super().save(update_fields=["status"])
 
         return self.status
+
+
+class Attempt(models.Model):
+    """Модель попытки отправки сообщения."""
+
+    STATUS_SUCCESS = "success"
+    STATUS_FAILED = "failed"
+
+    STATUS_CHOICES = [
+        (STATUS_SUCCESS, "Успешно"),
+        (STATUS_FAILED, "Не успешно"),
+    ]
+
+    attempt_time = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Дата и время попытки",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        verbose_name="Статус",
+    )
+    server_response = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Ответ почтового сервера",
+    )
+    mailing = models.ForeignKey(
+        Mailing,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+        verbose_name="Рассылка",
+    )
+
+    class Meta:
+        verbose_name = "Попытка рассылки"
+        verbose_name_plural = "Попытки рассылки"
+        ordering = ["-attempt_time"]
+
+    def __str__(self):
+        return f"Попытка #{self.pk} — {self.get_status_display()} ({self.mailing})"
