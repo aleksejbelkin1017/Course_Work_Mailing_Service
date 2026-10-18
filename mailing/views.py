@@ -1,7 +1,12 @@
+from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from mailing.models import Message, Recipient, Mailing
+from mailing.models import Mailing, Message, Recipient
+from mailing.services import send_mailing
+
 
 # --- RECIPIENT ---
 
@@ -79,6 +84,7 @@ class MailingListView(ListView):
     template_name = "mailing/mailing_list.html"
     context_object_name = "mailings"
 
+
 class MailingCreateView(CreateView):
     """Страница создания новой рассылки."""
     model = Mailing
@@ -86,6 +92,7 @@ class MailingCreateView(CreateView):
     template_name = "mailing/mailing_form.html"
     success_url = reverse_lazy("mailing:mailing_list")
     extra_context = {"title": "Добавить рассылку", "button_text": "Создать"}
+
 
 class MailingUpdateView(UpdateView):
     """Страница редактирования существующей рассылки."""
@@ -95,8 +102,24 @@ class MailingUpdateView(UpdateView):
     success_url = reverse_lazy("mailing:mailing_list")
     extra_context = {"title": "Редактировать рассылку", "button_text": "Сохранить"}
 
+
 class MailingDeleteView(DeleteView):
     """Страница подтверждения удаления рассылки."""
     model = Mailing
     template_name = "mailing/mailing_confirm_delete.html"
     success_url = reverse_lazy("mailing:mailing_list")
+
+
+class MailingSendView(View):
+    """Запуск рассылки по требованию."""
+
+    def post(self, request, pk):
+        mailing = get_object_or_404(Mailing, pk=pk)
+        success, message = send_mailing(mailing)
+
+        if success:
+            messages.success(request, message)
+        else:
+            messages.error(request, message)
+
+        return redirect("mailing:mailing_list")

@@ -29,6 +29,12 @@
             <td>{{ mailing.end_time|date:"d.m.Y H:i" }}</td>
             <td>
                 <a href="{% url 'mailing:mailing_update' mailing.pk %}" class="btn btn-sm btn-outline-primary">Редактировать</a>
+
+                <form action="{% url 'mailing:mailing_send' mailing.pk %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-success">Отправить</button>
+                </form>
+
                 <a href="{% url 'mailing:mailing_delete' mailing.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
             </td>
         </tr>
