@@ -115,3 +115,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # EMAIL (на время разработки — вывод в консоль)
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+AUTH_USER_MODEL = "users.User"
+
+# Редиректы после входа/выхода
+LOGIN_URL = "users:login"
+LOGIN_REDIRECT_URL = "mailing:index"
+LOGOUT_REDIRECT_URL = "mailing:index"
