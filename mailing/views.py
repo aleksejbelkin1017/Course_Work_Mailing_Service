@@ -1,3 +1,10 @@
-from django.shortcuts import render
+from django.views.generic import ListView
 
-# Create your views here.
+from mailing.models import Recipient
+
+
+class RecipientListView(ListView):
+    """Страница со списком всех получателей."""
+    model = Recipient
+    template_name = "mailing/recipient_list.html"
+    context_object_name = "recipients"
