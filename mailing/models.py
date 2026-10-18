@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
+
 class Recipient(models.Model):
     """Модель получателя рассылки."""
     email = models.EmailField(
@@ -19,6 +20,15 @@ class Recipient(models.Model):
         null=True,
         verbose_name="Комментарий",
         help_text="Необязательный комментарий",
+    )
+    # ДОБАВЛЕНО ПОЛЕ OWNER
+    owner = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Владелец",
+        related_name="recipients",
     )
 
     class Meta:
@@ -40,6 +50,15 @@ class Message(models.Model):
     body = models.TextField(
         verbose_name="Тело письма",
         help_text="Введите текст письма",
+    )
+    # ДОБАВЛЕНО ПОЛЕ OWNER
+    owner = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Владелец",
+        related_name="messages",
     )
 
     class Meta:
@@ -88,6 +107,15 @@ class Mailing(models.Model):
         Recipient,
         related_name="mailings",
         verbose_name="Получатели",
+    )
+    # ДОБАВЛЕНО ПОЛЕ OWNER
+    owner = models.ForeignKey(
+        "users.User",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name="Владелец",
+        related_name="mailings",
     )
 
     class Meta:

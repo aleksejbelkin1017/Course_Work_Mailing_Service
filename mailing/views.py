@@ -1,7 +1,8 @@
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
@@ -11,14 +12,14 @@ from mailing.services import send_mailing
 
 # --- RECIPIENT ---
 
-class RecipientListView(ListView):
+class RecipientListView(LoginRequiredMixin, ListView):
     """Страница со списком всех получателей."""
     model = Recipient
     template_name = "mailing/recipient_list.html"
     context_object_name = "recipients"
 
 
-class RecipientCreateView(CreateView):
+class RecipientCreateView(LoginRequiredMixin, CreateView):
     """Страница создания нового получателя."""
     model = Recipient
     fields = ["email", "full_name", "comment"]
@@ -26,8 +27,12 @@ class RecipientCreateView(CreateView):
     success_url = reverse_lazy("mailing:recipient_list")
     extra_context = {"title": "Добавить получателя", "button_text": "Создать"}
 
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
 
-class RecipientUpdateView(UpdateView):
+
+class RecipientUpdateView(LoginRequiredMixin, UpdateView):
     """Страница редактирования существующего получателя."""
     model = Recipient
     fields = ["email", "full_name", "comment"]
@@ -36,7 +41,7 @@ class RecipientUpdateView(UpdateView):
     extra_context = {"title": "Редактировать получателя", "button_text": "Сохранить"}
 
 
-class RecipientDeleteView(DeleteView):
+class RecipientDeleteView(LoginRequiredMixin, DeleteView):
     """Страница подтверждения удаления получателя."""
     model = Recipient
     template_name = "mailing/recipient_confirm_delete.html"
@@ -45,14 +50,14 @@ class RecipientDeleteView(DeleteView):
 
 # --- MESSAGE ---
 
-class MessageListView(ListView):
+class MessageListView(LoginRequiredMixin, ListView):
     """Страница со списком всех сообщений."""
     model = Message
     template_name = "mailing/message_list.html"
     context_object_name = "messages"
 
 
-class MessageCreateView(CreateView):
+class MessageCreateView(LoginRequiredMixin, CreateView):
     """Страница создания нового сообщения."""
     model = Message
     fields = ["subject", "body"]
@@ -60,8 +65,12 @@ class MessageCreateView(CreateView):
     success_url = reverse_lazy("mailing:message_list")
     extra_context = {"title": "Добавить сообщение", "button_text": "Создать"}
 
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
 
-class MessageUpdateView(UpdateView):
+
+class MessageUpdateView(LoginRequiredMixin, UpdateView):
     """Страница редактирования существующего сообщения."""
     model = Message
     fields = ["subject", "body"]
@@ -70,7 +79,7 @@ class MessageUpdateView(UpdateView):
     extra_context = {"title": "Редактировать сообщение", "button_text": "Сохранить"}
 
 
-class MessageDeleteView(DeleteView):
+class MessageDeleteView(LoginRequiredMixin, DeleteView):
     """Страница подтверждения удаления сообщения."""
     model = Message
     template_name = "mailing/message_confirm_delete.html"
@@ -79,14 +88,14 @@ class MessageDeleteView(DeleteView):
 
 # --- MAILING ---
 
-class MailingListView(ListView):
+class MailingListView(LoginRequiredMixin, ListView):
     """Страница со списком всех рассылок."""
     model = Mailing
     template_name = "mailing/mailing_list.html"
     context_object_name = "mailings"
 
 
-class MailingCreateView(CreateView):
+class MailingCreateView(LoginRequiredMixin, CreateView):
     """Страница создания новой рассылки."""
     model = Mailing
     fields = ["start_time", "end_time", "message", "recipients"]
@@ -94,8 +103,12 @@ class MailingCreateView(CreateView):
     success_url = reverse_lazy("mailing:mailing_list")
     extra_context = {"title": "Добавить рассылку", "button_text": "Создать"}
 
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
 
-class MailingUpdateView(UpdateView):
+
+class MailingUpdateView(LoginRequiredMixin, UpdateView):
     """Страница редактирования существующей рассылки."""
     model = Mailing
     fields = ["start_time", "end_time", "message", "recipients"]
@@ -104,14 +117,14 @@ class MailingUpdateView(UpdateView):
     extra_context = {"title": "Редактировать рассылку", "button_text": "Сохранить"}
 
 
-class MailingDeleteView(DeleteView):
+class MailingDeleteView(LoginRequiredMixin, DeleteView):
     """Страница подтверждения удаления рассылки."""
     model = Mailing
     template_name = "mailing/mailing_confirm_delete.html"
     success_url = reverse_lazy("mailing:mailing_list")
 
 
-class MailingSendView(View):
+class MailingSendView(LoginRequiredMixin, View):
     """Запуск рассылки по требованию."""
 
     def post(self, request, pk):
@@ -126,14 +139,17 @@ class MailingSendView(View):
         return redirect("mailing:mailing_list")
 
 
+# --- INDEX ---
+
 class IndexView(View):
     """Главная страница со статистикой."""
+
     def get(self, request):
         total_mailings = Mailing.objects.count()
         active_mailings = Mailing.objects.filter(
             start_time__lte=timezone.now(),
             end_time__gte=timezone.now(),
-            status=Mailing.STATUS_STARTED
+            status=Mailing.STATUS_STARTED,
         ).count()
         total_recipients = Recipient.objects.count()
 
@@ -142,4 +158,5 @@ class IndexView(View):
             "active_mailings": active_mailings,
             "total_recipients": total_recipients,
         }
+        from django.shortcuts import render
         return render(request, "mailing/index.html", context)
