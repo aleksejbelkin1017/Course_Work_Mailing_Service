@@ -120,5 +120,5 @@ AUTH_USER_MODEL = "users.User"
 
 # Редиректы после входа/выхода
 LOGIN_URL = "users:login"
-LOGIN_REDIRECT_URL = "mailing:index"
-LOGOUT_REDIRECT_URL = "mailing:index"
+LOGIN_REDIRECT_URL = "index"
+LOGOUT_REDIRECT_URL = "index"
