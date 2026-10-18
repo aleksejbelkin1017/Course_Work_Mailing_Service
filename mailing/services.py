@@ -13,9 +13,11 @@ def send_mailing(mailing: Mailing) -> tuple[bool, str]:
 
     # 1. Проверка времени
     if now < mailing.start_time:
-        return False, f"Рассылка ещё не началась. Начало: {mailing.start_time:%d.%m.%Y %H:%M}"
+        local_start = timezone.localtime(mailing.start_time)
+        return False, f"Рассылка ещё не началась. Начало: {local_start:%d.%m.%Y %H:%M}"
     if now > mailing.end_time:
-        return False, f"Рассылка уже завершена. Окончание: {mailing.end_time:%d.%m.%Y %H:%M}"
+        local_end = timezone.localtime(mailing.end_time)
+        return False, f"Рассылка уже завершена. Окончание: {local_end:%d.%m.%Y %H:%M}"
 
     # 2. Проверка наличия получателей
     recipients = mailing.recipients.all()

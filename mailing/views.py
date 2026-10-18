@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from mailing.models import Mailing, Message, Recipient
+from mailing.models import Mailing, Message, Recipient, Attempt
 from mailing.services import send_mailing
 
 
@@ -18,10 +18,8 @@ class OwnerQuerysetMixin:
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        # Если это менеджер (в группе "Менеджеры") или админ — видит всё
         if user.is_superuser or user.groups.filter(name="Менеджеры").exists():
             return qs
-        # Иначе — только объекты, где он владелец
         return qs.filter(owner=user)
 
 
@@ -127,10 +125,8 @@ class MailingDeleteView(LoginRequiredMixin, OwnerQuerysetMixin, DeleteView):
     success_url = reverse_lazy("mailing:mailing_list")
 
 
-class MailingSendView(LoginRequiredMixin, OwnerQuerysetMixin, View):
+class MailingSendView(LoginRequiredMixin, View):
     def post(self, request, pk):
-        # get_object_or_404 сработает с учетом фильтрации из миксина (если переопределить get_object)
-        # Проще проверить вручную:
         mailing = get_object_or_404(Mailing, pk=pk)
         if not request.user.is_superuser and not request.user.groups.filter(name="Менеджеры").exists():
             if mailing.owner != request.user:
@@ -159,9 +155,17 @@ class IndexView(View):
         ).count()
         total_recipients = Recipient.objects.count()
 
+        # Статистика попыток
+        total_attempts = Attempt.objects.count()
+        success_attempts = Attempt.objects.filter(status=Attempt.STATUS_SUCCESS).count()
+        failed_attempts = Attempt.objects.filter(status=Attempt.STATUS_FAILED).count()
+
         context = {
             "total_mailings": total_mailings,
             "active_mailings": active_mailings,
             "total_recipients": total_recipients,
+            "total_attempts": total_attempts,
+            "success_attempts": success_attempts,
+            "failed_attempts": failed_attempts,
         }
         return render(request, "mailing/index.html", context)
