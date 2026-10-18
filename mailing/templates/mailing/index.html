@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="p-5 mb-4 bg-light rounded-3">
+    <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">Сервис управления рассылками</h1>
+        <p class="col-md-8 fs-4">Управляйте клиентами, сообщениями и рассылками в одном месте.</p>
+        <a href="{% url 'mailing:mailing_list' %}" class="btn btn-primary btn-lg">Перейти к рассылкам</a>
+    </div>
+</div>
+
+<!-- Блок 1: Основная статистика -->
+<h2 class="mb-4">Статистика</h2>
+<div class="row text-center">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 mb-4">
+            <h3 class="text-primary">{{ total_mailings }}</h3>
+            <p class="fs-5">Всего рассылок</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 mb-4">
+            <h3 class="text-success">{{ active_mailings }}</h3>
+            <p class="fs-5">Активных рассылок</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 mb-4">
+            <h3 class="text-info">{{ total_recipients }}</h3>
+            <p class="fs-5">Уникальных получателей</p>
+        </div>
+    </div>
+</div>
+
+<!-- Блок 2: Статистика отправок (Попытки) -->
+<h2 class="mt-5 mb-4">Статистика отправок</h2>
+<div class="row text-center">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 mb-4">
+            <h3 class="text-dark">{{ total_attempts }}</h3>
+            <p class="fs-5">Всего попыток</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 mb-4">
+            <h3 class="text-success">{{ success_attempts }}</h3>
+            <p class="fs-5">Успешных отправок</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm p-4 mb-4">
+            <h3 class="text-danger">{{ failed_attempts }}</h3>
+            <p class="fs-5">Неуспешных отправок</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
