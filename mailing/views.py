@@ -1,8 +1,7 @@
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
-from mailing.models import Message, Recipient
-
+from mailing.models import Message, Recipient, Mailing
 
 # --- RECIPIENT ---
 
@@ -70,3 +69,34 @@ class MessageDeleteView(DeleteView):
     model = Message
     template_name = "mailing/message_confirm_delete.html"
     success_url = reverse_lazy("mailing:message_list")
+
+
+# --- MAILING ---
+
+class MailingListView(ListView):
+    """Страница со списком всех рассылок."""
+    model = Mailing
+    template_name = "mailing/mailing_list.html"
+    context_object_name = "mailings"
+
+class MailingCreateView(CreateView):
+    """Страница создания новой рассылки."""
+    model = Mailing
+    fields = ["start_time", "end_time", "message", "recipients"]
+    template_name = "mailing/mailing_form.html"
+    success_url = reverse_lazy("mailing:mailing_list")
+    extra_context = {"title": "Добавить рассылку", "button_text": "Создать"}
+
+class MailingUpdateView(UpdateView):
+    """Страница редактирования существующей рассылки."""
+    model = Mailing
+    fields = ["start_time", "end_time", "message", "recipients"]
+    template_name = "mailing/mailing_form.html"
+    success_url = reverse_lazy("mailing:mailing_list")
+    extra_context = {"title": "Редактировать рассылку", "button_text": "Сохранить"}
+
+class MailingDeleteView(DeleteView):
+    """Страница подтверждения удаления рассылки."""
+    model = Mailing
+    template_name = "mailing/mailing_confirm_delete.html"
+    success_url = reverse_lazy("mailing:mailing_list")
