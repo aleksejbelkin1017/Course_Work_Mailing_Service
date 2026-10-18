@@ -122,3 +122,13 @@ AUTH_USER_MODEL = "users.User"
 LOGIN_URL = "users:login"
 LOGIN_REDIRECT_URL = "index"
 LOGOUT_REDIRECT_URL = "index"
+
+# Клиентское кеширование (браузер)
+CACHE_MIDDLEWARE_SECONDS = 3600  # 1 час
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"redis://{os.getenv('REDIS_HOST', '127.0.0.1')}:{os.getenv('REDIS_PORT', '6379')}/1",
+    }
+}

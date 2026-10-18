@@ -1,3 +1,5 @@
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
@@ -145,6 +147,7 @@ class MailingSendView(LoginRequiredMixin, View):
 
 # --- INDEX ---
 
+@method_decorator(cache_page(60 * 15), name='dispatch')
 class IndexView(View):
     def get(self, request):
         total_mailings = Mailing.objects.count()
