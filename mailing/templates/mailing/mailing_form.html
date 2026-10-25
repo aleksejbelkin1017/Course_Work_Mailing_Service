@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+
+<form method="post" class="w-50">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <p class="text-muted small">
+        Для выбора нескольких получателей зажмите <strong>Ctrl</strong> (или <strong>Cmd</strong> на Mac).
+    </p>
+    <button type="submit" class="btn btn-primary">{{ button_text }}</button>
+    <a href="{% url 'mailing:mailing_list' %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}
